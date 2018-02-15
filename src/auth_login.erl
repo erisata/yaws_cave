@@ -1,6 +1,6 @@
-%%
-%%
-%%
+%%%
+%%%
+%%%
 -module(auth_login).
 
 -compile([{parse_transform, lager_transform}]).
