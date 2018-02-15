@@ -1,0 +1,15 @@
+{application, auth,
+    [
+        {description, ""},
+        {vsn, "1"},
+        {registered, []},
+        {applications, [
+            kernel,
+            stdlib,
+            sasl,
+            lager,
+            yaws
+        ]},
+        {mod, { auth_app, []}},
+        {env, []}
+    ]}.
