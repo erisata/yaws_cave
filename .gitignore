@@ -22,4 +22,7 @@ doc/utf8/
 *.pid
 ttb_last_config
 erl_crash.dump
-
+users.cfg
+auth.iml
+.idea/
+priv/
