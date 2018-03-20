@@ -17,7 +17,7 @@
 %%
 %%
 %%
-auth(_Arg = #arg{headers = #headers{authorization = Authorization}}, _Auth) ->
+auth(Arg = #arg{req = Req, headers = #headers{authorization = Authorization, other = OtherHeaders}}, _Auth) ->
     case Authorization of
         {undefined, undefined, OrigAuthHeader} ->
             % Use header based authentication for all the REST API.
@@ -33,7 +33,23 @@ auth(_Arg = #arg{headers = #headers{authorization = Authorization}}, _Auth) ->
                     false
             end;
         undefined ->
-            false % @todo pridėti websocket?
+            RequestMethod = yaws_api:http_request_method(Req),
+            HaveWSUpgrade = [] =/= [ok || {http_header, _, 'Upgrade', _, "websocket"} <- OtherHeaders],
+            case {RequestMethod, HaveWSUpgrade} of
+                {'GET', true} ->
+                    % Use cookie based authentication when initiating web sockets.
+                    % WebSockets have no way to provide authentication headers on connect.
+                    case auth_login:get_auth_token(Arg) of
+                        {ok, _UserId}    -> true;
+                        {error, _Reason} -> false
+                    end;
+                _ ->
+                    lager:warning(
+                        "Non-WebSocket request rejected, had no auth header: ~p-~p.",
+                        [RequestMethod, yaws_api:http_request_path(Req)]
+                    ),
+                    false
+            end
     end.
 
 
