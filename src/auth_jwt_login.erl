@@ -32,9 +32,14 @@ auth(Arg = #arg{req = Req, headers = #headers{authorization = Authorization, oth
                 _OtherTokens ->
                     false
             end;
+        {Username, Password, _OrigAuthHeader} ->
+            case auth_type:login(Username, Password) of
+                {ok, _Credentials} -> true;
+                _Other             -> false
+            end;
         undefined ->
             RequestMethod = yaws_api:http_request_method(Req),
-            HaveWSUpgrade = [] =/= [ok || {http_header, _, 'Upgrade', _, "websocket"} <- OtherHeaders],
+            HaveWSUpgrade = [] =/= [ ok || {http_header, _, 'Upgrade', _, "websocket"} <- OtherHeaders ],
             case {RequestMethod, HaveWSUpgrade} of
                 {'GET', true} ->
                     % Use cookie based authentication when initiating web sockets.

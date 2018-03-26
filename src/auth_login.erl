@@ -33,7 +33,7 @@ out401(#arg{opaque = Opaque}, _Auth, _Realm) ->
 %%  Entry point for Yaws appmod.
 %%
 out(Arg = #arg{req = Req, client_ip_port = {_Ip, _Port}, opaque = Opaque}) ->
-    Path = auth_assets:path_tokens(Arg),
+    Path = auth_static:path_tokens(Arg),
     Method = yaws_api:http_request_method(Req),
     case lists:member({"auth_webui_debug", "true"}, Opaque) of
         true ->
@@ -54,12 +54,12 @@ handle_request([], 'POST', Arg = #arg{opaque = Opaque}) ->
     FormOrCodeFun = fun(Message) ->
         case auth_app:get_env(return_form_on_error, true) of
             true ->
-                auth_assets:serve_translated(["login.html"], Arg, [
+                auth_static:serve_translated(["login.html"], Arg, [
                     {<<"@NOTIF_MESSAGE@">>, Message},
                     {<<"@NOTIF_CLASS@">>,   <<"alert-danger">>}
                 ]);
             false ->
-                auth_assets:respond_error_json(200, jiffy:encode({[{<<"error">>, true}, {<<"message">>, Message}]}))
+                auth_static:respond_error_json(200, jiffy:encode({[{<<"error">>, true}, {<<"message">>, Message}]}))
         end
     end,
     case auth_type:login(Username, Password) of
@@ -84,26 +84,26 @@ handle_request([], 'GET', Arg = #arg{opaque = Opaque}) ->
             {redirect, StartUri};
         {error, no_token} ->
             lager:debug("User provided no token, login screen will be shown."),
-            auth_assets:serve_translated(["login.html"], Arg, [
+            auth_static:serve_translated(["login.html"], Arg, [
                 {<<"@NOTIF_MESSAGE@">>, <<"Login please.">>},
                 {<<"@NOTIF_CLASS@">>,   <<"alert-info">>}
             ]);
         {error, Reason} ->
             lager:debug("User provided an invalid token, login screen will be shown, error=~p", [Reason]),
-            auth_assets:serve_translated(["login.html"], Arg, [
+            auth_static:serve_translated(["login.html"], Arg, [
                 {<<"@NOTIF_MESSAGE@">>, <<"Login please.">>},
                 {<<"@NOTIF_CLASS@">>,   <<"alert-info">>}
             ])
     end;
 
 handle_request(["img", "favicon.ico"] = Path, 'GET', Arg) ->
-    auth_assets:serve_plain(Path, Arg);
+    auth_static:serve_plain(Path, Arg);
 
 handle_request(["css." ++ _] = Path, 'GET', Arg) ->
-    auth_assets:serve_plain(Path, Arg);
+    auth_static:serve_plain(Path, Arg);
 
 handle_request(Path, Method, Arg) ->
-    auth_assets:respond_unknown(?MODULE, Path, Method, Arg).
+    auth_static:respond_unknown(?MODULE, Path, Method, Arg).
 
 
 

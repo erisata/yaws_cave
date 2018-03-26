@@ -1,7 +1,7 @@
 %%%
 %%%
 %%%
--module(auth_assets).
+-module(auth_static).
 -compile([{parse_transform, lager_transform}]).
 -export([
     out/1,
