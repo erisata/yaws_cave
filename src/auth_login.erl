@@ -64,7 +64,7 @@ handle_request([], 'POST', Arg = #arg{opaque = Opaque}) ->
     end,
     case auth_type:login(Username, Password) of
         {ok, #{user_id := AuthUserId, user_name := AuthUserName}} ->
-            {ok, JWT} = auth_jwt_login:make_jwt(AuthUserId, AuthUserName),
+            {ok, JWT} = auth_http_login:make_jwt(AuthUserId, AuthUserName),
             {_, StartUri} = proplists:lookup("auth_webui_start_uri", Opaque),
             [
                 yaws_api:set_cookie("auth_token", erlang:binary_to_list(JWT), [{path, "/"}]),
@@ -123,7 +123,7 @@ get_auth_token(#arg{headers = #headers{cookie = Cookie}}) ->
             {error, no_token};
         _ ->
             lager:debug("xxxxxx AuthToken=~p", [AuthToken]),
-            case catch auth_jwt_login:check_jwt(AuthToken) of
+            case catch auth_http_login:check_jwt(AuthToken) of
                 {ok, UserId}     -> {ok, UserId};
                 {error, Reason}  -> {error, Reason};
                 {'EXIT', Reason} -> {error, Reason};

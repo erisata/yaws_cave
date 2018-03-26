@@ -72,7 +72,7 @@ test_login_basic_credentials_false(_Config) ->
 
 
 test_login_jwt_credentials_true(_Config) ->
-    {ok, AuthToken} = auth_jwt_login:make_jwt(<<"sarunas">>, <<"sarunas">>),
+    {ok, AuthToken} = auth_http_login:make_jwt(<<"sarunas">>, <<"sarunas">>),
     {ok, 200, _Headers, <<"API\n">>} = hackney:request(get, <<"http://localhost:8027/admin/api">>, [{<<"Authorization">>, <<"Bearer ", AuthToken/binary>>}], <<>>, [with_body]),
     ok.
 

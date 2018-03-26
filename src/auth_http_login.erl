@@ -1,7 +1,7 @@
 %%%
 %%%
 %%%
--module(auth_jwt_login).
+-module(auth_http_login).
 
 -compile([{parse_transform, lager_transform}]).
 -export([auth/2]).
