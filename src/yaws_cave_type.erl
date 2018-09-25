@@ -1,7 +1,7 @@
 %%%
 %%%
 %%%
--module(auth_type).
+-module(yaws_cave_type).
 -compile([{parse_transform, lager_transform}]).
 -export([login/2]).
 
@@ -20,7 +20,7 @@
 %%
 %%
 login(Username, Password) ->
-    {ok, AuthModule} = auth_app:get_env(auth_module),
-    AuthModule:login(Username, Password, auth_app:get_env(auth_opts, [])).
+    {ok, AuthModule} = yaws_cave_app:get_env(auth_module),
+    AuthModule:login(Username, Password, yaws_cave_app:get_env(auth_opts, [])).
 
 

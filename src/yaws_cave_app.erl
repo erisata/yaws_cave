@@ -1,4 +1,4 @@
--module(auth_app).
+-module(yaws_cave_app).
 
 -behaviour(application).
 
@@ -6,7 +6,7 @@
 -export([start/2, stop/1]).
 -export([name/0, get_env/1, get_env/2, version/0]).
 
--define(APP, auth).
+-define(APP, yaws_cave).
 
 %%% ============================================================================
 %%% Public API.
@@ -33,7 +33,7 @@ version() ->
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    auth_sup:start_link().
+    yaws_cave_sup:start_link().
 
 stop(_State) ->
     ok.

@@ -1,7 +1,7 @@
 %%%
 %%%
 %%%
--module(auth_static).
+-module(yaws_cave_static).
 -compile([{parse_transform, lager_transform}]).
 -export([
     out/1,
@@ -58,7 +58,7 @@ handle_request(["assets" | _] = Path, 'GET', Arg) ->
     serve_translated(Path, Arg);
 
 handle_request(["img", "logo.png"], 'GET', Arg) ->
-    case auth_app:get_env(inst_logo) of
+    case yaws_cave_app:get_env(inst_logo) of
         {ok, {static_files, LogoFile}} ->
             ContentType = yaws_api:mime_type(LogoFile),
             serve_file(priv_file(LogoFile), ContentType, Arg);
@@ -142,11 +142,11 @@ serve_translated(Path, Arg, Bindings) ->
     case lists:member({status, 200}, Response) of
         true ->
             AllBindings = [
-                {<<"@VERSION@">>,     erlang:iolist_to_binary(auth_app:version())},
+                {<<"@VERSION@">>,     erlang:iolist_to_binary(yaws_cave_app:version())},
                 {<<"@PREFIX@">>,      erlang:iolist_to_binary(appmod_path(Arg))},
                 {<<"@API_PREFIX@">>,  erlang:iolist_to_binary(api_prefix(Arg))},
-                {<<"@INST_ENV@">>,    erlang:iolist_to_binary(auth_app:get_env(inst_env,  "Default"))},
-                {<<"@INST_NAME@">>,   erlang:iolist_to_binary(auth_app:get_env(inst_name, "Auth module"))}
+                {<<"@INST_ENV@">>,    erlang:iolist_to_binary(yaws_cave_app:get_env(inst_env,  "Default"))},
+                {<<"@INST_NAME@">>,   erlang:iolist_to_binary(yaws_cave_app:get_env(inst_name, "Auth module"))}
                 | Bindings
             ],
             ReplaceBinding = fun ({BndName, BndValue}, Binary) ->
@@ -193,9 +193,9 @@ serve_file(FileName, ContentType, Arg) ->
 %%
 %%
 priv_file(FileName) ->
-    PrivDir = case auth_app:get_env(static_files) of
+    PrivDir = case yaws_cave_app:get_env(static_files) of
         undefined ->
-            case code:priv_dir(auth_app:name()) of
+            case code:priv_dir(yaws_cave_app:name()) of
                 {error, bad_name} -> "priv/www/"; % To allow testing without creating whole app.
                 Dir -> Dir ++ "/www/"
             end;
@@ -255,7 +255,7 @@ appmod_path(#arg{server_path = ServerPath, appmoddata = AppmodData}) ->
 %%
 %%
 api_prefix(#arg{opaque = Opaque}) ->
-    {"auth_webui_api_prefix", ApiPrefix} = proplists:lookup("auth_webui_api_prefix", Opaque),
+    {"yaws_cave_webui_api_prefix", ApiPrefix} = proplists:lookup("yaws_cave_webui_api_prefix", Opaque),
     ApiPrefix.
 
 

@@ -1,7 +1,7 @@
 %%%
 %%%  Testcases
 %%%
--module(auth_SUITE).
+-module(yaws_cave_SUITE).
 -compile([{parse_transform, lager_transform}]).
 -export([all/0, init_per_suite/1, end_per_suite/1]).
 -export([
@@ -34,15 +34,15 @@ all() -> [
 %%  CT API, initialisation.
 %%
 init_per_suite(Config) ->
-    {ok, Started} = application:ensure_all_started(auth),
-    [{auth_apps, Started} | Config].
+    {ok, Started} = application:ensure_all_started(yaws_cave),
+    [{yaws_cave_apps, Started} | Config].
 
 
 %%
 %%  CT API, cleanup.
 %%
 end_per_suite(Config) ->
-    [ ok = application:stop(App) || App <- proplists:get_value(auth_apps, Config)],
+    [ ok = application:stop(App) || App <- proplists:get_value(yaws_cave_apps, Config)],
     ok.
 
 
@@ -52,7 +52,7 @@ end_per_suite(Config) ->
 %% =============================================================================
 
 test_login_credentials_true(_Config) ->
-    case auth_app:get_env(auth_module) of
+    case yaws_cave_app:get_env(auth_module) of
         {ok, auth_type_ldap} ->
             {ok, 302, _Headers, <<>>} = hackney:request(post, <<"http://localhost:8027/admin/login">>, [], {form, [{"username", "sarbrt"}, {"password", "Fskj21-bhu"}]}, [with_body]),
             ok;
@@ -81,7 +81,7 @@ test_login_basic_credentials_false(_Config) ->
 
 
 test_login_jwt_credentials_true(_Config) ->
-    {ok, AuthToken} = auth_http_login:make_jwt(<<"sarunas">>, <<"sarunas">>),
+    {ok, AuthToken} = yaws_cave_http_login:make_jwt(<<"sarunas">>, <<"sarunas">>),
     {ok, 200, _Headers, <<"API\n">>} = hackney:request(get, <<"http://localhost:8027/admin/api">>, [{<<"Authorization">>, <<"Bearer ", AuthToken/binary>>}], <<>>, [with_body]),
     ok.
 

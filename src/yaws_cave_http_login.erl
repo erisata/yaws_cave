@@ -1,7 +1,7 @@
 %%%
 %%%
 %%%
--module(auth_http_login).
+-module(yaws_cave_http_login).
 
 -compile([{parse_transform, lager_transform}]).
 -export([auth/2]).
@@ -34,7 +34,7 @@ auth(Arg = #arg{req = Req, headers = #headers{authorization = Authorization, oth
                     false
             end;
         {Username, Password, _OrigAuthHeader} ->
-            case auth_type:login(Username, Password) of
+            case yaws_cave_type:login(Username, Password) of
                 {ok, _Credentials} -> true;
                 _Other             -> false
             end;
@@ -45,7 +45,7 @@ auth(Arg = #arg{req = Req, headers = #headers{authorization = Authorization, oth
                 {'GET', true} ->
                     % Use cookie based authentication when initiating web sockets.
                     % WebSockets have no way to provide authentication headers on connect.
-                    case auth_login:get_auth_token(Arg) of
+                    case yaws_cave_login:get_auth_token(Arg) of
                         {ok, _UserId}    -> true;
                         {error, _Reason} -> false
                     end;
@@ -63,8 +63,8 @@ auth(Arg = #arg{req = Req, headers = #headers{authorization = Authorization, oth
 %%
 %%
 make_jwt(UserId, UserName) ->
-    Issuer  = auth_app:get_env(jwt_issuer, erlang:atom_to_list(auth_app:name())),
-    ExpSecs = auth_app:get_env(jwt_validity, 3600),
+    Issuer  = yaws_cave_app:get_env(jwt_issuer, erlang:atom_to_list(yaws_cave_app:name())),
+    ExpSecs = yaws_cave_app:get_env(jwt_validity, 3600),
     NowSecs = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
     ZeroSecs = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
     JWTHeader = json_base64_encode(#{
@@ -119,8 +119,8 @@ check_jwt(JWT) when is_binary(JWT) ->
 %%
 %%
 make_signature(Payload) ->
-    {ok, Filename} = auth_app:get_env(jwt_key_file),
-    {ok, Password} = auth_app:get_env(jwt_key_pass),
+    {ok, Filename} = yaws_cave_app:get_env(jwt_key_file),
+    {ok, Password} = yaws_cave_app:get_env(jwt_key_pass),
     {ok, KeyFile} = file:read_file(Filename),
     [PrivateKeyEntry] = public_key:pem_decode(KeyFile),
     PrivateKeyDecoded = public_key:pem_entry_decode(PrivateKeyEntry, Password),
@@ -131,7 +131,7 @@ make_signature(Payload) ->
 %%
 %%
 check_signature(Payload, Signature) ->
-    {ok, Filename} = auth_app:get_env(jwt_pub_file),
+    {ok, Filename} = yaws_cave_app:get_env(jwt_pub_file),
     {ok, PublicKey} = file:read_file(Filename),
     [PublicKeyEntry] = public_key:pem_decode(PublicKey),
     PublicKeyDecoded = public_key:pem_entry_decode(PublicKeyEntry),

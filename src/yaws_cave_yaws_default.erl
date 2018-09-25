@@ -1,7 +1,7 @@
 %%%
 %%% YAWS Appmod redirecting all the requests to the start page of this application.
 %%%
--module(auth_yaws_default).
+-module(yaws_cave_yaws_default).
 -compile([{parse_transform, lager_transform}]).
 -export([out/1, path_tokens/1]).
 -include_lib("yaws/include/yaws_api.hrl").

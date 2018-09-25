@@ -1,7 +1,7 @@
 %%%
 %%%
 %%%
--module(auth_example).
+-module(yaws_cave_example_api).
 -compile([{parse_transform, lager_transform}]).
 -export([out/1, handle_request/4]).
 -include_lib("yaws/include/yaws_api.hrl").
@@ -28,11 +28,19 @@ out(Arg) ->
 %%
 %%
 %%
+handle_request([], 'GET', _Arg, _Opts) ->
+    [
+        {status, 200},
+        {content, ?MEDIATYPE_PLAIN, [
+            "API\n"
+        ]}
+    ];
+
 handle_request(["admin"], 'GET', _Arg, _Opts) ->
     [
         {status, 200},
         {content, ?MEDIATYPE_PLAIN, [
-            "Admin\n"
+            "API Admin\n"
         ]}
     ];
 
@@ -40,7 +48,7 @@ handle_request(["login"], 'GET', _Arg, _Opts) ->
     [
         {status, 200},
         {content, ?MEDIATYPE_PLAIN, [
-            "login\n"
+            "API login\n"
         ]}
     ].
 

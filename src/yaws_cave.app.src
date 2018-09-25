@@ -1,4 +1,4 @@
-{application, auth,
+{application, yaws_cave,
     [
         {description, ""},
         {vsn, "1"},
@@ -12,6 +12,6 @@
             hackney,
             ntlm
         ]},
-        {mod, { auth_app, []}},
+        {mod, {yaws_cave_app, []}},
         {env, []}
     ]}.

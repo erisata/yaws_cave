@@ -1,8 +1,8 @@
 %%%
 %%%
 %%%
--module(auth_type_ldap).
--behaviour(auth_type).
+-module(yaws_cave_type_ldap).
+-behaviour(yaws_cave_type).
 -compile([{parse_transform, lager_transform}]).
 -export([login/3]).
 
@@ -12,7 +12,7 @@
 %%
 login(UserName, Password, _Opts) when is_list(UserName); is_list(Password) ->
     lager:debug("xxxxxxxxxxxx Start"),
-    {ok, LdapConfig} = auth_app:get_env(ldap),
+    {ok, LdapConfig} = yaws_cave_app:get_env(ldap),
     Ip   = proplists:get_value(ip,   LdapConfig),
     Dn   = proplists:get_value(dn,   LdapConfig),
     Opts = proplists:get_value(opts, LdapConfig),

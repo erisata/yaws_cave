@@ -1,4 +1,4 @@
--module(auth_sup).
+-module(yaws_cave_sup).
 
 -behaviour(supervisor).
 

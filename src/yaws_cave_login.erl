@@ -1,7 +1,7 @@
 %%%
 %%%
 %%%
--module(auth_login).
+-module(yaws_cave_login).
 -compile([{parse_transform, lager_transform}]).
 -export([auth/2, out401/3, out/1, get_auth_token/1]).
 -include_lib("yaws/include/yaws_api.hrl").
@@ -25,7 +25,7 @@ auth(Arg, _Auth) ->
 %%
 %%
 out401(#arg{opaque = Opaque}, _Auth, _Realm) ->
-    {_, LoginUri} = proplists:lookup("auth_webui_login_uri", Opaque),
+    {_, LoginUri} = proplists:lookup("yaws_cave_webui_login_uri", Opaque),
     {redirect, LoginUri}.
 
 
@@ -33,9 +33,9 @@ out401(#arg{opaque = Opaque}, _Auth, _Realm) ->
 %%  Entry point for Yaws appmod.
 %%
 out(Arg = #arg{req = Req, client_ip_port = {_Ip, _Port}, opaque = Opaque}) ->
-    Path = auth_yaws_default:path_tokens(Arg),
+    Path = yaws_cave_yaws_default:path_tokens(Arg),
     Method = yaws_api:http_request_method(Req),
-    case lists:member({"auth_webui_debug", "true"}, Opaque) of
+    case lists:member({"yaws_cave_webui_debug", "true"}, Opaque) of
         true ->
             ok;
         false ->
@@ -48,12 +48,12 @@ out(Arg = #arg{req = Req, client_ip_port = {_Ip, _Port}, opaque = Opaque}) ->
 %%
 %%
 handle_request([], 'POST', Arg = #arg{opaque = Opaque}) ->
-    {ok, StaticFilesAppmod} = auth_app:get_env(static_files_appmod),
+    {ok, StaticFilesAppmod} = yaws_cave_app:get_env(static_files_appmod),
     Fields = yaws_api:parse_post(Arg),
     Username = proplists:get_value("username", Fields),
     Password = proplists:get_value("password", Fields),
     FormOrCodeFun = fun(Message) ->
-        case auth_app:get_env(return_form_on_error, true) of
+        case yaws_cave_app:get_env(return_form_on_error, true) of
             true ->
                 StaticFilesAppmod:serve_translated(["login.html"], Arg, [
                     {<<"@NOTIF_MESSAGE@">>, Message},
@@ -63,12 +63,12 @@ handle_request([], 'POST', Arg = #arg{opaque = Opaque}) ->
                 respond_error_json(200, jiffy:encode({[{<<"error">>, true}, {<<"message">>, Message}]}))
         end
     end,
-    case auth_type:login(Username, Password) of
+    case yaws_cave_type:login(Username, Password) of
         {ok, #{user_id := AuthUserId, user_name := AuthUserName}} ->
-            {ok, JWT} = auth_http_login:make_jwt(AuthUserId, AuthUserName),
-            {_, StartUri} = proplists:lookup("auth_webui_start_uri", Opaque),
+            {ok, JWT} = yaws_cave_http_login:make_jwt(AuthUserId, AuthUserName),
+            {_, StartUri} = proplists:lookup("yaws_cave_webui_start_uri", Opaque),
             [
-                yaws_api:set_cookie("auth_token", erlang:binary_to_list(JWT), [{path, "/"}]),
+                yaws_api:set_cookie("yaws_cave_token", erlang:binary_to_list(JWT), [{path, "/"}]),
                 {redirect, StartUri}
             ];
         {error, Reason} when Reason =:= user_not_found; Reason =:= bad_credentials ->
@@ -78,11 +78,11 @@ handle_request([], 'POST', Arg = #arg{opaque = Opaque}) ->
     end;
 
 handle_request([], 'GET', Arg = #arg{opaque = Opaque}) ->
-    {ok, StaticFilesAppmod} = auth_app:get_env(static_files_appmod),
+    {ok, StaticFilesAppmod} = yaws_cave_app:get_env(static_files_appmod),
     case get_auth_token(Arg) of
         {ok, UserId} ->
             lager:debug("User ~p provided a valid token, redirecting to the app.", [UserId]),
-            {_, StartUri} = proplists:lookup("auth_webui_start_uri", Opaque),
+            {_, StartUri} = proplists:lookup("yaws_cave_webui_start_uri", Opaque),
             {redirect, StartUri};
         {error, no_token} ->
             lager:debug("User provided no token, login screen will be shown."),
@@ -99,11 +99,11 @@ handle_request([], 'GET', Arg = #arg{opaque = Opaque}) ->
     end;
 
 handle_request(["img", "favicon.ico"] = Path, 'GET', Arg) ->
-    {ok, StaticFilesAppmod} = auth_app:get_env(static_files_appmod),
+    {ok, StaticFilesAppmod} = yaws_cave_app:get_env(static_files_appmod),
     StaticFilesAppmod:serve_plain(Path, Arg);
 
 handle_request(["css." ++ _] = Path, 'GET', Arg) ->
-    {ok, StaticFilesAppmod} = auth_app:get_env(static_files_appmod),
+    {ok, StaticFilesAppmod} = yaws_cave_app:get_env(static_files_appmod),
     StaticFilesAppmod:serve_plain(Path, Arg);
 
 handle_request(Path, Method, Arg) ->
@@ -120,13 +120,13 @@ handle_request(Path, Method, Arg) ->
 %%
 get_auth_token(#arg{headers = #headers{cookie = Cookie}}) ->
 %%    @todo AuthToken
-    AuthToken = yaws_api:find_cookie_val("auth_token", Cookie),
+    AuthToken = yaws_api:find_cookie_val("yaws_cave_token", Cookie),
 %%    AuthToken = <<"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzYXJ1bmFzIiwibmFtZSI6InNhcnVuYXMiLCJpc3MiOiJhdXRoIiwiaWF0IjoxNTE5NzQxNDQ2LCJleHAiOjE1MjAxMDE0NDZ9.iLYtlme7lutCJC-2XTsRiE3BZW3pkzNRExCkhJdy0uLMvHmT54sYOZQY2AeXw33WFKSHbEGhvuZj18p4x2g5HTRPBMoG3FQa0VuGvKMbk5i3AZJ_sJfkbW92ZCiZiGnJAQwERcA5SpibcBmThISd9lBXVkBnVeOG9yhMjtHDGY68XQ6q8WrBkaT-UPwouFk5DgNJ47vjqsafml94dKvUvC7YMdCN9UlPswt3BwIzhFxZ59Me5SiINNZ_XlY9TYjKV77qXsnJcDKrTOjK-XprAFK2d9T0MFXvNbKuqIAu-XQ23Uo4-b4CYbLJDZYh2nlXfdjv0hO1rGaYmdPPzrEABQ">>,
     case AuthToken of
         "" ->
             {error, no_token};
         _ ->
-            case catch auth_http_login:check_jwt(AuthToken) of
+            case catch yaws_cave_http_login:check_jwt(AuthToken) of
                 {ok, UserId}     -> {ok, UserId};
                 {error, Reason}  -> {error, Reason};
                 {'EXIT', Reason} -> {error, Reason};
