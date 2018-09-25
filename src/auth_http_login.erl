@@ -18,6 +18,7 @@
 %%
 %%
 auth(Arg = #arg{req = Req, headers = #headers{authorization = Authorization, other = OtherHeaders}}, _Auth) ->
+    lager:debug("xxxxxxxxx abc"),
     case Authorization of
         {undefined, undefined, OrigAuthHeader} ->
             % Use header based authentication for all the REST API.
@@ -95,9 +96,7 @@ check_jwt(JWT) when is_binary(JWT) ->
             JWTPayload = <<JWTHeader/binary, $., JWTClaims/binary>>,
             case check_signature(JWTPayload, base64url_decode(JWTSignature)) of
                 true ->
-                    Creds = jiffy:decode(base64url_decode(JWTClaims), [return_maps]),
-                    lager:debug("xxxxxxxxxxx Creds=~p", [Creds]),
-                    case Creds of
+                    case jiffy:decode(base64url_decode(JWTClaims), [return_maps]) of
                         #{<<"sub">> := UserId} ->
                             {ok, erlang:binary_to_list(UserId)};
                         Claims ->

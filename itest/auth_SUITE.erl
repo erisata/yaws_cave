@@ -11,6 +11,7 @@
     test_login_basic_credentials_false/1,
     test_login_jwt_credentials_true/1,
     test_login_jwt_credentials_false/1
+%%    test_ntlm/1
 ]).
 -include_lib("common_test/include/ct.hrl").
 
@@ -25,6 +26,7 @@ all() -> [
     test_login_basic_credentials_false,
     test_login_jwt_credentials_true,
     test_login_jwt_credentials_false
+%%    test_ntlm
 ].
 
 
@@ -50,8 +52,13 @@ end_per_suite(Config) ->
 %% =============================================================================
 
 test_login_credentials_true(_Config) ->
-    {ok, 302, _Headers, <<>>} = hackney:request(post, <<"http://localhost:8027/admin/login">>, [], {form, [{"username", "sarunas"}, {"password", "pa55word"}]}, [with_body]),
-    ok.
+    case auth_app:get_env(auth_module) of
+        {ok, auth_type_ldap} ->
+            {ok, 302, _Headers, <<>>} = hackney:request(post, <<"http://localhost:8027/admin/login">>, [], {form, [{"username", "sarbrt"}, {"password", "Fskj21-bhu"}]}, [with_body]),
+            ok;
+        _ ->
+            ok
+    end.
 
 
 test_login_credentials_false(_Config) ->
@@ -62,6 +69,8 @@ test_login_credentials_false(_Config) ->
 test_login_basic_credentials_true(_Config) ->
     AuthToken = base64:encode(<<"sarunas:pa55word">>),
     {ok, 200, _Headers, <<"API\n">>} = hackney:request(get, <<"http://localhost:8027/admin/api">>, [{<<"Authorization">>, <<"Basic ", AuthToken/binary>>}], <<>>, [with_body]),
+%%    Res = hackney:request(get, <<"http://localhost:8027/admin/api">>, [{<<"Authorization">>, <<"Basic ", AuthToken/binary>>}], <<>>, [with_body]),
+%%    lager:debug("xxxxx res=~p", [Res]),
     ok.
 
 
@@ -82,4 +91,11 @@ test_login_jwt_credentials_false(_Config) ->
     {ok, 401, _Headers, _Body} = hackney:request(get, <<"http://localhost:8027/admin/api">>, [{<<"Authorization">>, <<"Bearer ", AuthToken/binary>>}], <<>>, [with_body]),
     ok.
 
+%%test_ntlm(_Config) ->
+%%    inets:start(),
+%%    {ok, Request} = httpc:request(get, {"http://www.erlang.org", []}, [], [{sync, false}]),
+%%    lager:debug("xxxxxxxxxxxxxxxxx Request=~p", [Request]),
+%%    Connect = ntlm_httpc:request(get, {"http://www.erlang.org", []}, {"sarunas-ThinkPad-E560.erisata.lt", "litcorp", "sarbrt", "Fskj21-bhu"}),
+%%    lager:debug("xxxxxxxxxxxxxxxxx Connect=~p", [Connect]),
+%%    ok.
 

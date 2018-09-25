@@ -9,7 +9,8 @@
             sasl,
             lager,
             yaws,
-            hackney
+            hackney,
+            ntlm
         ]},
         {mod, { auth_app, []}},
         {env, []}

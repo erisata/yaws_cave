@@ -33,7 +33,7 @@ out401(#arg{opaque = Opaque}, _Auth, _Realm) ->
 %%  Entry point for Yaws appmod.
 %%
 out(Arg = #arg{req = Req, client_ip_port = {_Ip, _Port}, opaque = Opaque}) ->
-    Path = auth_static:path_tokens(Arg),
+    Path = auth_yaws_default:path_tokens(Arg),
     Method = yaws_api:http_request_method(Req),
     case lists:member({"auth_webui_debug", "true"}, Opaque) of
         true ->
@@ -48,18 +48,19 @@ out(Arg = #arg{req = Req, client_ip_port = {_Ip, _Port}, opaque = Opaque}) ->
 %%
 %%
 handle_request([], 'POST', Arg = #arg{opaque = Opaque}) ->
+    {ok, StaticFilesAppmod} = auth_app:get_env(static_files_appmod),
     Fields = yaws_api:parse_post(Arg),
     Username = proplists:get_value("username", Fields),
     Password = proplists:get_value("password", Fields),
     FormOrCodeFun = fun(Message) ->
         case auth_app:get_env(return_form_on_error, true) of
             true ->
-                auth_static:serve_translated(["login.html"], Arg, [
+                StaticFilesAppmod:serve_translated(["login.html"], Arg, [
                     {<<"@NOTIF_MESSAGE@">>, Message},
                     {<<"@NOTIF_CLASS@">>,   <<"alert-danger">>}
                 ]);
             false ->
-                auth_static:respond_error_json(200, jiffy:encode({[{<<"error">>, true}, {<<"message">>, Message}]}))
+                respond_error_json(200, jiffy:encode({[{<<"error">>, true}, {<<"message">>, Message}]}))
         end
     end,
     case auth_type:login(Username, Password) of
@@ -77,6 +78,7 @@ handle_request([], 'POST', Arg = #arg{opaque = Opaque}) ->
     end;
 
 handle_request([], 'GET', Arg = #arg{opaque = Opaque}) ->
+    {ok, StaticFilesAppmod} = auth_app:get_env(static_files_appmod),
     case get_auth_token(Arg) of
         {ok, UserId} ->
             lager:debug("User ~p provided a valid token, redirecting to the app.", [UserId]),
@@ -84,26 +86,28 @@ handle_request([], 'GET', Arg = #arg{opaque = Opaque}) ->
             {redirect, StartUri};
         {error, no_token} ->
             lager:debug("User provided no token, login screen will be shown."),
-            auth_static:serve_translated(["login.html"], Arg, [
+            StaticFilesAppmod:serve_translated(["login.html"], Arg, [
                 {<<"@NOTIF_MESSAGE@">>, <<"Login please.">>},
                 {<<"@NOTIF_CLASS@">>,   <<"alert-info">>}
             ]);
         {error, Reason} ->
             lager:debug("User provided an invalid token, login screen will be shown, error=~p", [Reason]),
-            auth_static:serve_translated(["login.html"], Arg, [
+            StaticFilesAppmod:serve_translated(["login.html"], Arg, [
                 {<<"@NOTIF_MESSAGE@">>, <<"Login please.">>},
                 {<<"@NOTIF_CLASS@">>,   <<"alert-info">>}
             ])
     end;
 
 handle_request(["img", "favicon.ico"] = Path, 'GET', Arg) ->
-    auth_static:serve_plain(Path, Arg);
+    {ok, StaticFilesAppmod} = auth_app:get_env(static_files_appmod),
+    StaticFilesAppmod:serve_plain(Path, Arg);
 
 handle_request(["css." ++ _] = Path, 'GET', Arg) ->
-    auth_static:serve_plain(Path, Arg);
+    {ok, StaticFilesAppmod} = auth_app:get_env(static_files_appmod),
+    StaticFilesAppmod:serve_plain(Path, Arg);
 
 handle_request(Path, Method, Arg) ->
-    auth_static:respond_unknown(?MODULE, Path, Method, Arg).
+    respond_unknown(?MODULE, Path, Method, Arg).
 
 
 
@@ -122,7 +126,6 @@ get_auth_token(#arg{headers = #headers{cookie = Cookie}}) ->
         "" ->
             {error, no_token};
         _ ->
-            lager:debug("xxxxxx AuthToken=~p", [AuthToken]),
             case catch auth_http_login:check_jwt(AuthToken) of
                 {ok, UserId}     -> {ok, UserId};
                 {error, Reason}  -> {error, Reason};
@@ -130,4 +133,46 @@ get_auth_token(#arg{headers = #headers{cookie = Cookie}}) ->
                 Error            -> {error, Error}
             end
     end.
+
+%%% ============================================================================
+%%% API Functions
+%%% ============================================================================
+
+
+
+%%
+%%  Generic method for responding to unknown paths.
+%%
+respond_unknown(Module, Path, Method, _Args) ->
+    respond_error(404, "Unknown resource", Module, Path, Method, '#').
+
+
+%%
+%%  Respond to request with error message.
+%%
+respond_error(Number, Message, Module, Path, Method, Args) ->
+    lager:warning(string:concat(Message, " in ~p, path=~p, method=~p, args=~p"), [Module, Path, Method, Args]),
+    [
+        {status, Number},
+        {ehtml, get_error_html(Message)}
+    ].
+
+
+%%
+%%
+%%
+respond_error_json(Number, Body) ->
+    [
+        {status,  Number},
+        {content, <<"application/json">>, Body}
+    ].
+
+
+%%
+%%
+%%
+get_error_html(Error) ->
+    [{h1, [], "ERROR!"},
+        {p, [], Error}].
+
 

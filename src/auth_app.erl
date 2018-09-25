@@ -4,7 +4,7 @@
 
 %% Application callbacks
 -export([start/2, stop/1]).
--export([name/0, get_env/1, get_env/2]).
+-export([name/0, get_env/1, get_env/2, version/0]).
 
 -define(APP, auth).
 
@@ -19,6 +19,14 @@ name() ->
     ?APP.
 
 
+%%
+%%
+%%
+version() ->
+    case lists:keyfind(?APP, 1, application:which_applications()) of
+        {_App, _Type, Version}  -> Version;
+        false                   -> undefined
+    end.
 
 %% ===================================================================
 %% Application callbacks

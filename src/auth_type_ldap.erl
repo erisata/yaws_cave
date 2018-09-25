@@ -11,11 +11,15 @@
 %% Ex. cn=admin, password=root
 %%
 login(UserName, Password, _Opts) when is_list(UserName); is_list(Password) ->
+    lager:debug("xxxxxxxxxxxx Start"),
     {ok, LdapConfig} = auth_app:get_env(ldap),
     Ip   = proplists:get_value(ip,   LdapConfig),
-    Dc   = proplists:get_value(dc,   LdapConfig),
+    Dn   = proplists:get_value(dn,   LdapConfig),
     Opts = proplists:get_value(opts, LdapConfig),
-    DefaultOpts = [{port, proplists:get_value(port, Opts)}, {ssl, proplists:get_value(ssl, Opts, false)}],
+    DefaultOpts = [
+        {port, proplists:get_value(port, Opts)},
+        {ssl, proplists:get_value(ssl, Opts, false)}
+    ],
     LdapOpts = case proplists:get_value(log, Opts, false) of
         true ->
             [{log, fun (_L, S, A) -> io:format(S, A) end} | DefaultOpts];
@@ -23,14 +27,17 @@ login(UserName, Password, _Opts) when is_list(UserName); is_list(Password) ->
             DefaultOpts
     end,
     {ok, H} = eldap:open([Ip], LdapOpts),
-    case eldap:simple_bind(H, "cn=" ++ UserName ++ "," ++ Dc, Password) of
+    lager:debug("xxxxxxxxxxxx H=~p", [H]),
+    case eldap:simple_bind(H, Dn ++ "\\" ++ UserName, Password) of
         ok ->
             {ok, #{
                 user_id     => UserName,
                 user_name   => UserName
             }};
-        _Other ->
-            {error, bad_credentials}
+        {error, invalidCredentials} ->
+            {error, bad_credentials};
+        Other ->
+            {error, Other}
     end.
 
 

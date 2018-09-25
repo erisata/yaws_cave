@@ -59,6 +59,9 @@ handle_request(["assets" | _] = Path, 'GET', Arg) ->
 
 handle_request(["img", "logo.png"], 'GET', Arg) ->
     case auth_app:get_env(inst_logo) of
+        {ok, {static_files, LogoFile}} ->
+            ContentType = yaws_api:mime_type(LogoFile),
+            serve_file(priv_file(LogoFile), ContentType, Arg);
         {ok, LogoFile} ->
             ContentType = yaws_api:mime_type(LogoFile),
             serve_file(LogoFile, ContentType, Arg);
@@ -139,9 +142,9 @@ serve_translated(Path, Arg, Bindings) ->
     case lists:member({status, 200}, Response) of
         true ->
             AllBindings = [
-%%                {<<"@VERSION@">>,     erlang:iolist_to_binary(axb_webui_app:version())},
-%%                {<<"@PREFIX@">>,      erlang:iolist_to_binary(axb_webui_yaws_appmod:appmod_path(Arg))},
-%%                {<<"@API_PREFIX@">>,  erlang:iolist_to_binary(axb_webui_yaws_appmod:api_prefix(Arg))},
+                {<<"@VERSION@">>,     erlang:iolist_to_binary(auth_app:version())},
+                {<<"@PREFIX@">>,      erlang:iolist_to_binary(appmod_path(Arg))},
+                {<<"@API_PREFIX@">>,  erlang:iolist_to_binary(api_prefix(Arg))},
                 {<<"@INST_ENV@">>,    erlang:iolist_to_binary(auth_app:get_env(inst_env,  "Default"))},
                 {<<"@INST_NAME@">>,   erlang:iolist_to_binary(auth_app:get_env(inst_name, "Auth module"))}
                 | Bindings
@@ -190,11 +193,18 @@ serve_file(FileName, ContentType, Arg) ->
 %%
 %%
 priv_file(FileName) ->
-    PrivDir = case code:priv_dir(auth_app:name()) of
-        {error, bad_name} -> "priv"; % To allow testing without creating whole app.
-        Dir -> Dir
+    PrivDir = case auth_app:get_env(static_files) of
+        undefined ->
+            case code:priv_dir(auth_app:name()) of
+                {error, bad_name} -> "priv/www/"; % To allow testing without creating whole app.
+                Dir -> Dir ++ "/www/"
+            end;
+        {ok, {path, StaticFilesDir}} ->
+            StaticFilesDir ++ "/";
+        {ok, {app, App, StaticFilesDir}} ->
+            code:priv_dir(App) ++ "/../" ++ StaticFilesDir ++ "/"
     end,
-    lists:flatten(PrivDir ++ "/www/" ++ FileName).
+    lists:flatten(PrivDir ++ FileName).
 
 
 %%
@@ -224,5 +234,28 @@ path_tokens_normalize([_ | Normalized], [".." | Tokens]) ->
 
 path_tokens_normalize(Normalized, [Token | Tokens]) when Token =/= ".." ->
     path_tokens_normalize([Token | Normalized], Tokens).
+
+
+%%
+%%  Returns a path, at which the appmod is mounted.
+%%
+%%  <AppmodPath>/<AppmodData> = <PrePath><Appmod>/AppmodData = <ServerPath>
+%%
+appmod_path(#arg{server_path = ServerPath, appmoddata = undefined}) ->
+    ServerPath;
+
+appmod_path(#arg{server_path = ServerPath, appmoddata = "/"}) ->
+    string:substr(ServerPath, 1, length(ServerPath) - 1);
+
+appmod_path(#arg{server_path = ServerPath, appmoddata = AppmodData}) ->
+    string:substr(ServerPath, 1, length(ServerPath) - length(AppmodData) - 1).
+
+
+%%
+%%
+%%
+api_prefix(#arg{opaque = Opaque}) ->
+    {"auth_webui_api_prefix", ApiPrefix} = proplists:lookup("auth_webui_api_prefix", Opaque),
+    ApiPrefix.
 
 
