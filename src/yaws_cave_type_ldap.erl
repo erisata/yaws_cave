@@ -11,7 +11,6 @@
 %% Ex. cn=admin, password=root
 %%
 login(UserName, Password, _Opts) when is_list(UserName); is_list(Password) ->
-    lager:debug("xxxxxxxxxxxx Start"),
     {ok, LdapConfig} = yaws_cave_app:get_env(ldap),
     Ip   = proplists:get_value(ip,   LdapConfig),
     Dn   = proplists:get_value(dn,   LdapConfig),
@@ -27,7 +26,6 @@ login(UserName, Password, _Opts) when is_list(UserName); is_list(Password) ->
             DefaultOpts
     end,
     {ok, H} = eldap:open([Ip], LdapOpts),
-    lager:debug("xxxxxxxxxxxx H=~p", [H]),
     case eldap:simple_bind(H, Dn ++ "\\" ++ UserName, Password) of
         ok ->
             {ok, #{

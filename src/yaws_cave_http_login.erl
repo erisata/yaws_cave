@@ -18,7 +18,6 @@
 %%
 %%
 auth(Arg = #arg{req = Req, headers = #headers{authorization = Authorization, other = OtherHeaders}}, _Auth) ->
-    lager:debug("xxxxxxxxx abc"),
     case Authorization of
         {undefined, undefined, OrigAuthHeader} ->
             % Use header based authentication for all the REST API.
